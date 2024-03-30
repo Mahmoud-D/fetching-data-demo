@@ -7,7 +7,7 @@ export default {
       apiData: null, // Store the data from the API
       isLoading: false, // Set a loading state when fetching data
       errorMessage: null, // Set an error message when an error occurs
-      cancelSource: axios.CancelToken.source(), // Use axios's cancellation feature
+      abortController: new AbortController(), // Use AbortController to cancel requests
       currentPage: 1, // Number of items per page
       itemsPerPage: 5 // Number of items per page
     }
@@ -40,7 +40,7 @@ export default {
 
       try {
         const response = await axios.get(apiUrl, {
-          cancelToken: this.cancelSource.token // Use axios's cancellation feature
+          signal: this.abortController.signal // Use signal instead of cancelToken
         })
 
         this.apiData = response.data // Store the data from the API
@@ -60,7 +60,7 @@ export default {
     },
 
     abortRequest() {
-      this.cancelSource.cancel('Request aborted')
+      this.abortController.abort()
     }
   }
 }
