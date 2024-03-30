@@ -7,24 +7,43 @@ export default {
       apiData: null, // Store the data from the API
       isLoading: false, // Set a loading state when fetching data
       errorMessage: null, // Set an error message when an error occurs
-      cancelSource: axios.CancelToken.source() // Use axios's cancellation feature
+      cancelSource: axios.CancelToken.source(), // Use axios's cancellation feature
+      currentPage: 1, // Number of items per page
+      itemsPerPage: 5 // Number of items per page
     }
   },
+
+  computed: {
+    paginatedData() {
+      const start = (this.currentPage - 1) * this.itemsPerPage
+      const end = start + this.itemsPerPage
+      return this.apiData ? this.apiData.slice(start, end) : []
+    },
+
+    totalPages() {
+      return this.apiData
+        ? Math.ceil(this.apiData.length / this.itemsPerPage)
+        : 0
+    }
+  },
+
   mounted() {
     this.fetchDataFromAPI()
   },
+
   methods: {
     async fetchDataFromAPI() {
       const apiUrl = `https://jsonplaceholder.typicode.com/users/`
 
-      this.isLoading = true
+      this.isLoading = true // Set loading to true before each request
       this.errorMessage = null // Reset the error message before each request
 
       try {
         const response = await axios.get(apiUrl, {
           cancelToken: this.cancelSource.token // Use axios's cancellation feature
         })
-        this.apiData = response.data.slice(0, 7) // get only first 7 items
+
+        this.apiData = response.data // Store the data from the API
       } catch (error) {
         if (axios.isCancel(error)) {
           console.log('Request canceled:', error.message)
@@ -39,8 +58,9 @@ export default {
         this.isLoading = false
       }
     },
+
     abortRequest() {
-      this.abortController.abort()
+      this.cancelSource.cancel('Request aborted')
     }
   }
 }
@@ -49,6 +69,7 @@ export default {
 <template>
   <div class="cont">
     <p class="table-category">Try Car Users</p>
+
     <table class="table" v-if="!isLoading && !errorMessage">
       <thead>
         <tr>
@@ -59,7 +80,8 @@ export default {
           <th scope="col">Image</th>
         </tr>
       </thead>
-      <tbody v-for="item in apiData" :key="item.id">
+
+      <tbody v-for="item in paginatedData" :key="item.id">
         <tr>
           <th scope="row">{{ item.id }}</th>
           <td>{{ item.company.bs }}</td>
@@ -75,6 +97,35 @@ export default {
         </tr>
       </tbody>
     </table>
+
+    <nav
+      aria-label="Page navigation example"
+      v-if="!isLoading && !errorMessage"
+    >
+      <ul class="pagination">
+        <li class="page-item" :class="{ disabled: currentPage === 1 }">
+          <a class="page-link" href="#" @click.prevent="currentPage--"
+            >Previous</a
+          >
+        </li>
+
+        <li
+          class="page-item"
+          v-for="page in totalPages"
+          :key="page"
+          :class="{ active: currentPage === page }"
+        >
+          <a class="page-link" href="#" @click.prevent="currentPage = page">{{
+            page
+          }}</a>
+        </li>
+
+        <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+          <a class="page-link" href="#" @click.prevent="currentPage++">Next</a>
+        </li>
+      </ul>
+    </nav>
+
     <p class="loading" v-if="isLoading">Loading...</p>
     <p class="error" v-if="errorMessage">{{ errorMessage }}</p>
   </div>
@@ -97,6 +148,10 @@ th {
   background-color: #553192 !important;
   color: white !important;
   border-bottom: 1px solid #999 !important;
+}
+nav {
+  display: flex;
+  justify-content: center;
 }
 .error {
   color: red;
