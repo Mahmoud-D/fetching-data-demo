@@ -45,7 +45,7 @@ export default {
 
         this.apiData = response.data // Store the data from the API
       } catch (error) {
-        if (axios.isCancel(error)) {
+        if (error instanceof AbortController) {
           console.log('Request canceled:', error.message)
         } else if (!error.response) {
           // Network error
